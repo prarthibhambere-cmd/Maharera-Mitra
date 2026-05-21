@@ -128,7 +128,7 @@ export default function Sidebar({
               MahaRERA-Mitra
             </h1>
             <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-zinc-500">
-              Legal AI · RERA Compliance
+              Your Maha-RERA AI Friend
             </p>
           </div>
         </div>
