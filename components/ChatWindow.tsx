@@ -112,7 +112,16 @@ export default function ChatWindow() {
       }
 
       const res = await fetch("/api/chat", { method: "POST", body: formData });
-      if (!res.ok) throw new Error("Chat request failed");
+      if (!res.ok) {
+        let serverMessage = `Request failed with status ${res.status}`;
+        try {
+          const body = await res.json();
+          if (body?.error) serverMessage = body.error;
+        } catch {
+          // body wasn't JSON; keep the generic status message
+        }
+        throw new Error(serverMessage);
+      }
 
       const citations = decodeCitationsHeader(res.headers.get("X-Citations"));
       if (citations.length > 0) {
@@ -137,14 +146,15 @@ export default function ChatWindow() {
           )
         );
       }
-    } catch {
+    } catch (err) {
+      const detail =
+        err instanceof Error ? err.message : "Unknown error";
       setMessages((prev) =>
         prev.map((m) =>
           m.id === assistantMsg.id
             ? {
                 ...m,
-                content:
-                  "I encountered an error processing your request. Please check your API keys and try again.",
+                content: `**Error:** ${detail}\n\nCheck the server logs for details.`,
               }
             : m
         )
