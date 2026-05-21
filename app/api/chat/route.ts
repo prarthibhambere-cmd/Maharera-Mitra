@@ -104,6 +104,32 @@ async function ingestUploadedPdf(file: File): Promise<string> {
   return fullText.slice(0, 8000);
 }
 
+function cosineSimilarity(a: number[], b: number[]): number {
+  let dot = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
+  }
+  const denom = Math.sqrt(normA) * Math.sqrt(normB);
+  return denom === 0 ? 0 : dot / denom;
+}
+
+function parseStoredEmbedding(raw: unknown): number[] | null {
+  if (Array.isArray(raw)) return raw as number[];
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? (parsed as number[]) : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 async function retrieveRagContext(
   query: string
 ): Promise<{ context: string; citations: SourceCitation[] }> {
@@ -112,28 +138,44 @@ async function retrieveRagContext(
   try {
     const queryEmbedding = await generateEmbedding(query);
     const db = supabaseAdmin();
-    const { data, error } = await db.rpc("match_maharera_documents", {
-      query_embedding: `[${queryEmbedding.join(",")}]`,
-      match_threshold: RAG_MATCH_THRESHOLD,
-      match_count: RAG_MATCH_COUNT,
-    });
+
+    // JS-side cosine similarity: fetch all rows with embeddings, rank in
+    // memory. Bulletproof for demo-scale knowledge bases (sub-10K rows).
+    // For production scale, fix the pgvector RPC and switch back.
+    const { data, error } = await db
+      .from("maharera_knowledge")
+      .select("id, source_type, title, content, metadata, embedding")
+      .not("embedding", "is", null);
 
     if (error) {
-      console.error("RAG retrieval failed:", error.message);
+      console.error("RAG fetch failed:", error.message);
       return { context: "", citations: [] };
     }
 
-    const results = (data as MatchResult[] | null) ?? [];
-    if (results.length === 0) return { context: "", citations: [] };
+    const scored = (data ?? [])
+      .map((row) => {
+        const emb = parseStoredEmbedding(row.embedding);
+        if (!emb) return null;
+        return {
+          ...row,
+          similarity: cosineSimilarity(queryEmbedding, emb),
+        };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null)
+      .filter((r) => r.similarity > RAG_MATCH_THRESHOLD)
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, RAG_MATCH_COUNT);
 
-    const context = results
+    if (scored.length === 0) return { context: "", citations: [] };
+
+    const context = scored
       .map(
         (r) =>
           `[Source: ${r.source_type} — "${r.title}" (relevance ${r.similarity.toFixed(2)})]\n${r.content}`
       )
       .join("\n\n---\n\n");
 
-    const citations: SourceCitation[] = results.map((r) => ({
+    const citations: SourceCitation[] = scored.map((r) => ({
       title: r.title,
       sourceType: r.source_type,
       similarity: r.similarity,
