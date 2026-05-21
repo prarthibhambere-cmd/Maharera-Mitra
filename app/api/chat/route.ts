@@ -139,12 +139,15 @@ async function retrieveRagContext(
     const queryEmbedding = await generateEmbedding(query);
     const db = supabaseAdmin();
 
-    // JS-side cosine similarity: fetch all rows with embeddings, rank in
-    // memory. Bulletproof for demo-scale knowledge bases (sub-10K rows).
-    // For production scale, fix the pgvector RPC and switch back.
+    // JS-side cosine similarity: fetch only canonical sources (act / circular).
+    // User-uploaded PDFs live in the same table for ingestion bookkeeping but
+    // should not surface as citations — the AI already gets the current upload
+    // via uploadedContext, and citing the user's own document back to them is
+    // noise. Past uploads stay in DB but are excluded from retrieval.
     const { data, error } = await db
       .from("maharera_knowledge")
       .select("id, source_type, title, content, metadata, embedding")
+      .in("source_type", ["act", "circular"])
       .not("embedding", "is", null);
 
     if (error) {
