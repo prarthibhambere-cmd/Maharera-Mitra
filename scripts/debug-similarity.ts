@@ -33,14 +33,49 @@ async function main() {
     match_count: 10,
   });
 
-  if (error) {
-    console.error("RPC error:", error);
-    return;
+  console.log("RPC raw result:");
+  console.log("  data:", JSON.stringify(data, null, 2));
+  console.log("  error:", JSON.stringify(error, null, 2));
+  console.log();
+
+  // JS-side cosine similarity to compare against what DB should produce
+  console.log("--- JS-side cosine similarity (ground truth) ---");
+  const { data: allRows } = await supabase
+    .from("maharera_knowledge")
+    .select("title, embedding");
+
+  function parseEmbedding(raw: unknown): number[] | null {
+    if (Array.isArray(raw)) return raw as number[];
+    if (typeof raw === "string") {
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return null;
+      }
+    }
+    return null;
   }
 
-  console.log(`Matches (threshold=0.0, all rows ranked):\n`);
-  for (const row of data || []) {
-    console.log(`  ${row.similarity.toFixed(4)}  [${row.source_type}] ${row.title.slice(0, 70)}`);
+  function cosineSim(a: number[], b: number[]): number {
+    let dot = 0,
+      na = 0,
+      nb = 0;
+    for (let i = 0; i < a.length; i++) {
+      dot += a[i] * b[i];
+      na += a[i] * a[i];
+      nb += b[i] * b[i];
+    }
+    return dot / (Math.sqrt(na) * Math.sqrt(nb));
+  }
+
+  for (const r of allRows || []) {
+    const emb = parseEmbedding(r.embedding);
+    if (!emb) {
+      console.log(`  [no embedding] ${r.title.slice(0, 60)}`);
+      continue;
+    }
+    const sim = cosineSim(queryEmbedding, emb);
+    console.log(`  ${sim.toFixed(4)}  dim=${emb.length}  ${r.title.slice(0, 60)}`);
   }
 
   // Sanity check: read raw rows and inspect embedding

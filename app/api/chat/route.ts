@@ -113,7 +113,7 @@ async function retrieveRagContext(
     const queryEmbedding = await generateEmbedding(query);
     const db = supabaseAdmin();
     const { data, error } = await db.rpc("match_maharera_documents", {
-      query_embedding: queryEmbedding,
+      query_embedding: `[${queryEmbedding.join(",")}]`,
       match_threshold: RAG_MATCH_THRESHOLD,
       match_count: RAG_MATCH_COUNT,
     });
