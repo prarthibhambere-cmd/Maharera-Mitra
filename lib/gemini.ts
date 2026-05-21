@@ -11,8 +11,9 @@ function getAI(): GoogleGenAI {
 
 export async function generateEmbedding(text: string): Promise<number[]> {
   const response = await getAI().models.embedContent({
-    model: "text-embedding-004",
+    model: "gemini-embedding-001",
     contents: text,
+    config: { outputDimensionality: 768 },
   });
   return response.embeddings![0].values!;
 }

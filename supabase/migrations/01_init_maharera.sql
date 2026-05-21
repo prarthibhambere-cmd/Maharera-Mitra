@@ -2,7 +2,7 @@
 create extension if not exists vector with schema extensions;
 
 -- Core knowledge base table for all MahaRERA documents
-create table maharera_knowledge (
+create table if not exists maharera_knowledge (
   id uuid primary key default gen_random_uuid(),
   source_type text not null check (source_type in ('circular', 'act', 'user-upload')),
   title text not null,
@@ -13,10 +13,12 @@ create table maharera_knowledge (
 );
 
 -- Index for fast vector similarity search
-create index on maharera_knowledge using ivfflat (embedding vector_cosine_ops) with (lists = 100);
+create index if not exists maharera_knowledge_embedding_idx
+  on maharera_knowledge using ivfflat (embedding vector_cosine_ops) with (lists = 100);
 
 -- Index for filtering by source type
-create index on maharera_knowledge (source_type);
+create index if not exists maharera_knowledge_source_type_idx
+  on maharera_knowledge (source_type);
 
 -- Vector similarity search function used by the RAG pipeline
 create or replace function match_maharera_documents(

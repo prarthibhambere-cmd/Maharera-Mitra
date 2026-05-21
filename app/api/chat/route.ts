@@ -222,7 +222,7 @@ export async function POST(req: NextRequest) {
   let geminiStream;
   try {
     geminiStream = await getAI().models.generateContentStream({
-      model: "gemini-2.0-flash",
+      model: "gemini-2.5-flash",
       config: {
         systemInstruction: SYSTEM_PROMPT,
         temperature: 0.3,
