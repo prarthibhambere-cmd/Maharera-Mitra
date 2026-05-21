@@ -13,17 +13,23 @@ import {
 } from "lucide-react";
 import FileUploadZone from "./FileUploadZone";
 
-interface SourceCitation {
+export interface SourceCitation {
   title: string;
   sourceType: string;
   similarity: number;
 }
 
-interface Message {
+export interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   citations?: SourceCitation[];
+}
+
+interface ChatWindowProps {
+  sessionId: string;
+  messages: Message[];
+  onMessagesChange: (messages: Message[]) => void;
 }
 
 function decodeCitationsHeader(header: string | null): SourceCitation[] {
@@ -53,13 +59,34 @@ function decodeCitationsHeader(header: string | null): SourceCitation[] {
   }
 }
 
-export default function ChatWindow() {
-  const [messages, setMessages] = useState<Message[]>([]);
+export default function ChatWindow({
+  messages,
+  onMessagesChange,
+}: ChatWindowProps) {
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Keep a ref to the latest messages so async stream updates can append
+  // without stale-closure issues even when the parent re-renders.
+  const messagesRef = useRef(messages);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  const setMessages = useCallback(
+    (updater: Message[] | ((prev: Message[]) => Message[])) => {
+      const next =
+        typeof updater === "function"
+          ? (updater as (prev: Message[]) => Message[])(messagesRef.current)
+          : updater;
+      messagesRef.current = next;
+      onMessagesChange(next);
+    },
+    [onMessagesChange]
+  );
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
