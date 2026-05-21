@@ -65,20 +65,22 @@ export default function FileUploadZone({
 
   if (activeFile) {
     return (
-      <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/50 px-4 py-3">
-        <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+      <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 backdrop-blur-md">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10">
+          <CheckCircle2 className="h-4 w-4 text-amber-600" />
+        </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-slate-800">
+          <p className="truncate text-sm font-medium text-zinc-900">
             {activeFile.name}
           </p>
-          <p className="text-xs text-slate-500">
-            {(activeFile.size / 1024).toFixed(0)} KB &middot; Ready for
-            analysis
+          <p className="text-[11px] text-zinc-500">
+            {(activeFile.size / 1024).toFixed(0)} KB · Ready for analysis
           </p>
         </div>
         <button
           onClick={onClear}
-          className="rounded-md p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition-colors"
+          className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-amber-100 hover:text-zinc-700"
+          aria-label="Remove uploaded file"
         >
           <X className="h-4 w-4" />
         </button>
@@ -93,10 +95,10 @@ export default function FileUploadZone({
       onDragOver={handleDrag}
       onDrop={handleDrop}
       onClick={() => inputRef.current?.click()}
-      className={`group cursor-pointer rounded-xl border-2 border-dashed px-6 py-5 text-center transition-all ${
+      className={`group flex cursor-pointer items-center gap-3 rounded-xl border border-dashed p-4 backdrop-blur-md transition-all ${
         isDragging
-          ? "border-slate-400 bg-slate-100"
-          : "border-slate-200 bg-slate-50/50 hover:border-slate-300 hover:bg-slate-50"
+          ? "border-amber-400 bg-amber-50/80"
+          : "border-zinc-300 bg-white/80 hover:border-zinc-400 hover:bg-white"
       }`}
     >
       <input
@@ -106,25 +108,31 @@ export default function FileUploadZone({
         onChange={handleFileInput}
         className="hidden"
       />
-      <div className="flex flex-col items-center gap-2">
+      <div
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors ${
+          isDragging
+            ? "bg-amber-500/15 text-amber-600"
+            : "bg-zinc-100 text-zinc-400 group-hover:text-zinc-600"
+        }`}
+      >
         {isDragging ? (
-          <FileText className="h-8 w-8 text-slate-500" strokeWidth={1.5} />
+          <FileText className="h-4 w-4" strokeWidth={2} />
         ) : (
-          <Upload
-            className="h-8 w-8 text-slate-300 group-hover:text-slate-400 transition-colors"
-            strokeWidth={1.5}
-          />
+          <Upload className="h-4 w-4" strokeWidth={2} />
         )}
-        <div>
-          <p className="text-sm font-medium text-slate-600">
-            {isDragging
-              ? "Drop your PDF here"
-              : "Upload Agreement for Sale or Layout Approval"}
-          </p>
-          <p className="mt-0.5 text-xs text-slate-400">
-            Drag &amp; drop a PDF or click to browse
-          </p>
-        </div>
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-zinc-800">
+          {isDragging
+            ? "Drop your PDF here"
+            : "Upload documents for reference"}
+        </p>
+        <p className="mt-0.5 text-[11px] text-zinc-500">
+          Drag &amp; drop a PDF, or{" "}
+          <span className="font-medium text-amber-600 underline-offset-2 group-hover:underline">
+            click to browse
+          </span>
+        </p>
       </div>
     </div>
   );
