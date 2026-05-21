@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, AlertCircle } from "lucide-react";
 import { getBrowserClient } from "@/lib/auth";
@@ -14,11 +14,19 @@ import { getBrowserClient } from "@/lib/auth";
  *   - #access_token  (implicit flow — supabase-js picks up from hash)
  *   - ?error=...     (provider error)
  *
- * We do the exchange here explicitly rather than relying on
- * `detectSessionInUrl` racing with a server-side redirect. Once done, we
- * router.replace to home (no full reload — preserves the now-set session).
+ * The inner component uses useSearchParams() and must be wrapped in
+ * <Suspense> so Next.js can render a fallback during static generation
+ * without erroring out (CSR bailout requirement in App Router).
  */
 export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={<CallbackShell variant="working" />}>
+      <AuthCallbackInner />
+    </Suspense>
+  );
+}
+
+function AuthCallbackInner() {
   const router = useRouter();
   const params = useSearchParams();
   const [status, setStatus] = useState<"working" | "error">("working");
@@ -69,10 +77,31 @@ export default function AuthCallbackPage() {
     void finish();
   }, [params, router]);
 
+  if (status === "error") {
+    return (
+      <CallbackShell
+        variant="error"
+        errorMessage={errorMessage}
+        onBack={() => router.replace("/")}
+      />
+    );
+  }
+  return <CallbackShell variant="working" />;
+}
+
+function CallbackShell({
+  variant,
+  errorMessage,
+  onBack,
+}: {
+  variant: "working" | "error";
+  errorMessage?: string | null;
+  onBack?: () => void;
+}) {
   return (
     <div className="flex h-screen w-full items-center justify-center bg-zinc-50">
       <div className="w-full max-w-sm rounded-2xl border border-zinc-200/80 bg-white p-8 shadow-sm">
-        {status === "working" ? (
+        {variant === "working" ? (
           <div className="flex flex-col items-center gap-3 text-center">
             <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
             <p className="text-sm font-medium text-zinc-900">
@@ -93,12 +122,14 @@ export default function AuthCallbackPage() {
             <p className="text-xs leading-relaxed text-zinc-600">
               {errorMessage}
             </p>
-            <button
-              onClick={() => router.replace("/")}
-              className="mt-2 rounded-lg bg-zinc-900 px-4 py-2 text-xs font-medium text-white hover:bg-zinc-800"
-            >
-              Back to app
-            </button>
+            {onBack && (
+              <button
+                onClick={onBack}
+                className="mt-2 rounded-lg bg-zinc-900 px-4 py-2 text-xs font-medium text-white hover:bg-zinc-800"
+              >
+                Back to app
+              </button>
+            )}
           </div>
         )}
       </div>
