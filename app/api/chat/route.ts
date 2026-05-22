@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ai as getAI, generateEmbedding } from "@/lib/gemini";
 import { supabaseAdmin, type MatchResult } from "@/lib/supabaseClient";
-import { PDFParse } from "pdf-parse";
 
 // pdf-parse requires the Node.js runtime (not Edge)
 export const runtime = "nodejs";
@@ -52,6 +51,11 @@ function chunkText(text: string, size = CHUNK_SIZE, overlap = CHUNK_OVERLAP): st
 }
 
 async function extractPdfText(buffer: Buffer): Promise<{ text: string; pages: number }> {
+  // Lazy-load pdf-parse ONLY when a PDF is actually uploaded. It pulls in
+  // pdfjs-dist which uses Node internals that crash at import time on the
+  // Cloudflare Workers runtime — a top-level import would 500 every request
+  // (file or not). Dynamic import contains the blast radius to PDF uploads.
+  const { PDFParse } = await import("pdf-parse");
   const parser = new PDFParse({ data: new Uint8Array(buffer) });
   try {
     const info = await parser.getInfo();
