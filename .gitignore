@@ -33,6 +33,10 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+# .env.production holds ONLY public NEXT_PUBLIC_* vars (safe to commit —
+# the Supabase anon key is designed to be exposed to browsers; RLS guards data).
+# Secrets (SERVICE_ROLE_KEY, GEMINI_API_KEY) stay out of git as runtime secrets.
+!.env.production
 
 # editor/tooling local settings
 .claude/
