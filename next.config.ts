@@ -13,4 +13,13 @@ const nextConfig: NextConfig = {
 
 export default nextConfig;
 
-import('@opennextjs/cloudflare').then(m => m.initOpenNextCloudflareForDev());
+// Cloudflare OpenNext dev binding hook — only needed when running locally via
+// the Cloudflare adapter. Guarded so it never executes during a production
+// build on other hosts (Netlify, Vercel), which keeps those builds clean.
+if (process.env.NODE_ENV === "development") {
+  import("@opennextjs/cloudflare")
+    .then((m) => m.initOpenNextCloudflareForDev())
+    .catch(() => {
+      // adapter not available outside Cloudflare dev — safe to ignore
+    });
+}
