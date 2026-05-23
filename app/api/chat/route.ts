@@ -51,19 +51,15 @@ function chunkText(text: string, size = CHUNK_SIZE, overlap = CHUNK_OVERLAP): st
 }
 
 async function extractPdfText(buffer: Buffer): Promise<{ text: string; pages: number }> {
-  // Lazy-load pdf-parse ONLY when a PDF is actually uploaded. It pulls in
-  // pdfjs-dist which uses Node internals that crash at import time on the
-  // Cloudflare Workers runtime — a top-level import would 500 every request
-  // (file or not). Dynamic import contains the blast radius to PDF uploads.
-  const { PDFParse } = await import("pdf-parse");
-  const parser = new PDFParse({ data: new Uint8Array(buffer) });
-  try {
-    const info = await parser.getInfo();
-    const result = await parser.getText();
-    return { text: result.text, pages: info.pages?.length ?? 0 };
-  } finally {
-    await parser.destroy();
-  }
+  // Use unpdf (lazy-loaded). It ships a serverless build of pdf.js that works
+  // in Node serverless functions and edge/worker runtimes WITHOUT browser DOM
+  // globals. pdf-parse/pdfjs-dist needed DOMMatrix (Netlify) and Node worker
+  // threads (Cloudflare), neither of which exist in those runtimes.
+  const { extractText, getDocumentProxy } = await import("unpdf");
+  const pdf = await getDocumentProxy(new Uint8Array(buffer));
+  const { totalPages, text } = await extractText(pdf, { mergePages: true });
+  const merged = Array.isArray(text) ? text.join("\n") : text;
+  return { text: merged, pages: totalPages };
 }
 
 async function ingestUploadedPdf(file: File): Promise<string> {
