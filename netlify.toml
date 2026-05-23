@@ -1,0 +1,10 @@
+# Netlify configuration for the Next.js App Router app.
+# The official @netlify/plugin-nextjs runtime turns SSR pages and API route
+# handlers (like /api/chat) into Netlify Functions. Without it, Netlify ships
+# only the static export and dynamic routes 404.
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
