@@ -48,3 +48,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local tooling cache (e.g. leftover wrangler/miniflare state)
+.wrangler
+.open-next
