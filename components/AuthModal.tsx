@@ -258,11 +258,6 @@ export default function AuthModal({ open, onClose }: AuthModalProps) {
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon />}
                 Continue with Google
               </button>
-              <p className="rounded-lg bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
-                <strong>Setup required:</strong> In Supabase Dashboard →
-                Authentication → Providers → Google, paste your OAuth client ID
-                and secret from Google Cloud Console.
-              </p>
             </div>
           )}
 
